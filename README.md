@@ -7,6 +7,7 @@ $ crontab -l
 ```
 
 ```
+$ cat ~/path/to/self_forsquare_bot/env
 export CONSUMER_KEY=""
 export CONSUMER_SECRET=""
 export ACCESS_TOKEN=""
