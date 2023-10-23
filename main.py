@@ -1,5 +1,6 @@
 import tweepy
 import requests
+import time
 from requests.exceptions import RequestException, ConnectionError, HTTPError, Timeout
 import datetime
 import os
@@ -67,7 +68,7 @@ def main():
 
     # checkins list
     now_dt = datetime.datetime.now()
-    before_dt = now_dt - datetime.timedelta(days=1) 
+    before_dt = now_dt - datetime.timedelta(minutes=2) 
 
     unitxtime_after = int(before_dt.timestamp())
     unixtime_before = int(now_dt.timestamp())
@@ -119,6 +120,7 @@ def main():
 
         post_ids.append(d['id'])
         os.remove(photo_path)
+        time.sleep(1)
     
     with open(LAST_POST_MEMO_PATH, 'a') as f:
         for l in post_ids:
