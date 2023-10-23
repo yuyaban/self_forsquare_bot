@@ -1,5 +1,6 @@
 # self Forsquare Bot
-Swarm の通知が X(Twitter) に連携されないため、自分でなんちゃって連携通知をします。
+Swarm の通知が X(Twitter) に連携されないため、自分でなんちゃって連携通知をします。  
+webhook 用のサーバを立てる場所もアドレスもなかったので、crontab 等でポーリングすることで連携通知する仕組みです。
 
 ```
 $ crontab -l
