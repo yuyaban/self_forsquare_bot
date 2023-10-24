@@ -10,6 +10,7 @@ import json
 import tweepy
 from mastodon import Mastodon
 import requests
+from urllib.parse import parse_qs
 from requests.exceptions import RequestException, ConnectionError, HTTPError, Timeout
 import os
 import re
@@ -154,7 +155,12 @@ class WebhookHandler(http.server.BaseHTTPRequestHandler):
         if "/webhook" == self.path:
             content_length = int(self.headers['Content-Length'])
             post_data = self.rfile.read(content_length)
-            data = json.loads(post_data.decode('utf-8'))
+        
+            # application/x-www-form-urlencodedデータを解析
+            post_data = post_data.decode('utf-8')
+            post_data = parse_qs(post_data)
+            # 解析したデータをJSONに変換
+            data = {key: value[0] for key, value in post_data.items()}
 
             # main process
             self.main(data)
