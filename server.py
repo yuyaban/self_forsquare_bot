@@ -89,7 +89,7 @@ class WebhookHandler(http.server.BaseHTTPRequestHandler):
     
     def main(self, data):
         # Webhookデータの処理
-        print(data['checkin'])
+        print(f"[+] INFO: data['checkin']= {data['checkin']}")
         if 'checkin' in data:
             checkin_json = json.loads(data['checkin'])
             checkin_id = checkin_json['id']
