@@ -1,4 +1,5 @@
 .env
 *.txt
-/data/*
-venv
+/data/tmp
+/data/last_post
+venv*

@@ -1,4 +1,5 @@
 import tweepy
+from mastodon import Mastodon
 import requests
 import time
 from requests.exceptions import RequestException, ConnectionError, HTTPError, Timeout
@@ -6,12 +7,18 @@ import datetime
 import os
 import re
 import sys
+import mimetypes
 
 CONSUMER_KEY = os.environ['CONSUMER_KEY']
 CONSUMER_SECRET = os.environ['CONSUMER_SECRET']
 ACCESS_TOKEN = os.environ['ACCESS_TOKEN']
 ACCESS_SECRET = os.environ['ACCESS_SECRET']
 BEARER_TOKERN = os.environ['BEARER_TOKERN']
+
+MASTDN_CLIENT_KEY = os.environ['MASTDN_CLIENT_KEY']
+MASTDN_CLIENT_SECRET = os.environ['MASTDN_CLIENT_SECRET']
+MASTDN_ACCESS_TOKEN = os.environ['MASTDN_ACCESS_TOKEN']
+
 FORSQUARE_ACCESS_TOKEN= os.environ['FORSQUARE_ACCESS_TOKEN']
 
 LAST_POST_MEMO_PATH = "./data/last_post"
@@ -32,9 +39,19 @@ def create_tw_client():
 
     return client, api
 
-def get_request(url):
+def create_mstdn_client():
+    client = Mastodon(
+        api_base_url  = 'https://mstdn.jp',
+        client_id     = MASTDN_CLIENT_KEY,
+        client_secret = MASTDN_CLIENT_SECRET,
+        access_token  = MASTDN_ACCESS_TOKEN
+    )
+
+    return client
+
+def get_request(url, params):
     try:
-        response = requests.get(url)
+        response = requests.get(url, params=params)
         response.raise_for_status()
         return response.json()
     except ConnectionError as ce:
@@ -72,10 +89,16 @@ def main():
 
     unitxtime_after = int(before_dt.timestamp())
     unixtime_before = int(now_dt.timestamp())
-    url = f"https://api.foursquare.com/v2/users/self/checkins?v=20231022&oauth_token={FORSQUARE_ACCESS_TOKEN}&afterTimestamp={unitxtime_after}&beforeTimestamp={unixtime_before}"
+    url = f"https://api.foursquare.com/v2/users/self/checkins"
     #url = f"https://api.foursquare.com/v2/users/self/checkins?v=20231022&oauth_token={FORSQUARE_ACCESS_TOKEN}&limit=2"
+    checkin_params = {
+        'oauth_token': FORSQUARE_ACCESS_TOKEN,
+        'v': '20231024',  # Foursquare APIのバージョンを指定
+        'afterTimestamp': unitxtime_after,  # 開始時刻のタイムスタンプ
+        'beforeTimestamp': unixtime_before  # 終了時刻のタイムスタンプ
+    }
 
-    checkins_json = get_request(url)
+    checkins_json = get_request(url, checkin_params)
 
     for d in checkins_json['response']['checkins']['items']:
         if d['id']+"\n" in last_posts_ids:
@@ -99,7 +122,11 @@ def main():
         post_address = d['venue']['location']['formattedAddress'][-1] if not re.match(r'\d{3}-?\d{4}', d['venue']['location']['formattedAddress'][-1]) else d['venue']['location']['formattedAddress'][-2]
 
         # get checkinShortUrl
-        url = f"https://api.foursquare.com/v2/checkins/{d['id']}?v=20231022&oauth_token={FORSQUARE_ACCESS_TOKEN}"
+        url = f"https://api.foursquare.com/v2/checkins/{d['id']}"
+        params = {
+            'oauth_token': FORSQUARE_ACCESS_TOKEN,
+            'v': '20231022',  # Foursquare APIのバージョンを指定
+        }
         checkins_details_json = get_request(url)
         
         checkinShortUrl = checkins_details_json['response']['checkin']['checkinShortUrl']
@@ -112,14 +139,18 @@ def main():
         print(f"{post_msg}, {hasPhoto}")
 
         tw_client_v2, tw_api_v1 = create_tw_client()
+        mstdn_client = create_mstdn_client()
         if hasPhoto:
             media = tw_api_v1.media_upload(filename=photo_path)
             tw_client_v2.create_tweet(text=post_msg, media_ids=[media.media_id])
+            media_files = [mstdn_client.media_post(photo_path, mimetypes.guess_type(photo_path)[0])]
+            mstdn_client.status_post(status=post_msg, media_ids=media_files, visibility="private")
+            os.remove(photo_path)
         else:
             tw_client_v2.create_tweet(text=post_msg)
+            mstdn_client.status_post(status=post_msg, visibility="private")
 
         post_ids.append(d['id'])
-        os.remove(photo_path)
         time.sleep(1)
     
     with open(LAST_POST_MEMO_PATH, 'a') as f:

@@ -5,7 +5,7 @@ name = "pypi"
 
 [packages]
 tweepy = "*"
-foursquare = "*"
+"mastodon.py" = "*"
 
 [dev-packages]
 
