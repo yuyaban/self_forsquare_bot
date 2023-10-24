@@ -1,3 +1,10 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+# ----------------------------------------------------------------------------
+# Created By  : yuyaban
+# Created Date: 2023/10/24
+# ---------------------------------------------------------------------------
+
 import tweepy
 from mastodon import Mastodon
 import requests
