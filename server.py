@@ -151,15 +151,31 @@ class WebhookHandler(http.server.BaseHTTPRequestHandler):
         return 0
 
     def do_POST(self):
-        content_length = int(self.headers['Content-Length'])
-        post_data = self.rfile.read(content_length)
-        data = json.loads(post_data.decode('utf-8'))
+        if "/webhook" == self.path:
+            content_length = int(self.headers['Content-Length'])
+            post_data = self.rfile.read(content_length)
+            data = json.loads(post_data.decode('utf-8'))
 
-        # main process
-        self.main(data)
+            # main process
+            self.main(data)
 
-        self.send_response(200)
-        self.end_headers()
+            self.send_response(200)
+            self.end_headers()
+        else:
+            self.send_error(404)
+        
+        return 0
+    
+    def do_GET(self):
+        if "/healthcheck" == self.path:
+            self.send_response(200)
+            self.send_header('Content-Type', 'text/html; charset=utf-8')
+            self.end_headers()
+            self.wfile.write("Healthy".encode())
+        else:
+            self.send_error(404)
+        
+        return 0
 
 with socketserver.TCPServer(("", PORT), WebhookHandler) as httpd:
     print(f"Serving at port {PORT}")
