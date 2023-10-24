@@ -136,12 +136,14 @@ class WebhookHandler(http.server.BaseHTTPRequestHandler):
             tw_client_v2, tw_api_v1 = self.create_tw_client()
             mstdn_client = self.create_mstdn_client()
             if hasPhoto:
+                print("[+] INFO: hasPhoto")
                 media = tw_api_v1.media_upload(filename=photo_path)
                 tw_client_v2.create_tweet(text=post_msg, media_ids=[media.media_id])
                 media_files = [mstdn_client.media_post(photo_path, mimetypes.guess_type(photo_path)[0])]
                 mstdn_client.status_post(status=post_msg, media_ids=media_files, visibility="private")
                 os.remove(photo_path)
             else:
+                print("[+] INFO: NOT hasPhoto")
                 tw_client_v2.create_tweet(text=post_msg)
                 mstdn_client.status_post(status=post_msg, visibility="private")
             
