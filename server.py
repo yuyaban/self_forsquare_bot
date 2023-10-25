@@ -18,6 +18,9 @@ import re
 import sys
 import mimetypes
 
+# DEBUG FLAG
+DEBUG = False
+
 # port number
 PORT = 8080
 
@@ -97,7 +100,7 @@ class WebhookHandler(http.server.BaseHTTPRequestHandler):
 
     def main(self, data):
         # main process
-        print(f"[+] DEBUG: data['checkin']= {data['checkin']}")
+        if DEBUG: print(f"[+] DEBUG: data['checkin']= {data['checkin']}")
         if 'checkin' in data:
             checkin_json = json.loads(data['checkin'])
             checkin_id = checkin_json['id']
@@ -116,7 +119,7 @@ class WebhookHandler(http.server.BaseHTTPRequestHandler):
 
             # Check if it matches the ID received by webhook
             if checkin['id'] != checkin_id:
-                print("[+] ERROR: recieve checkin_id is missing.")
+                if DEBUG: print("[+] ERROR: recieve checkin_id is missing.")
                 return 0
 
             hasPhoto = False
@@ -124,7 +127,7 @@ class WebhookHandler(http.server.BaseHTTPRequestHandler):
             photo_path = ""
             post_msg = ""
 
-            print(f"[+] DEBUG: checkin= {checkin}")
+            if DEBUG: print(f"[+] DEBUG: checkin= {checkin}")
             # Check Photo
             if checkin['photos']['count'] > 0:
                 hasPhoto = True
@@ -147,25 +150,29 @@ class WebhookHandler(http.server.BaseHTTPRequestHandler):
                 'v': FOURSQUARE_API_VERSION,  # Foursquare APIのバージョンを指定
             }
             checkins_details = self.get_request(url, params)
+
+            if not "shares" in checkins_details['response']['checkin']:
+                if DEBUG: print("[+] DEBUG: not share SNS")
+                return 0
             
             checkinShortUrl = checkins_details['response']['checkin']['checkinShortUrl']
 
             if hasShout:
-                post_msg = f"{checkin['shout']} (@ {checkin['venue']['name']} in {post_address}) {checkinShortUrl}"
+                post_msg = f"{checkin['shout']} (@ {checkin['venue']['name']} in {post_address})\n{checkinShortUrl}"
             else:
-                post_msg = f"I'm at {checkin['venue']['name']} in {post_address} {checkinShortUrl}"
+                post_msg = f"I'm at {checkin['venue']['name']} in {post_address}\n{checkinShortUrl}"
 
             tw_client_v2, tw_api_v1 = self.create_tw_client()
             mstdn_client = self.create_mstdn_client()
             if hasPhoto:
-                print("[+] INFO: hasPhoto")
+                if DEBUG: print("[+] DEBUG: hasPhoto")
                 media = tw_api_v1.media_upload(filename=photo_path)
                 tw_client_v2.create_tweet(text=post_msg, media_ids=[media.media_id])
                 media_files = [mstdn_client.media_post(photo_path, mimetypes.guess_type(photo_path)[0])]
                 mstdn_client.status_post(status=post_msg, media_ids=media_files, visibility="private")
                 os.remove(photo_path)
             else:
-                print("[+] INFO: NOT hasPhoto")
+                if DEBUG: print("[+] DEBUG: NOT hasPhoto")
                 tw_client_v2.create_tweet(text=post_msg)
                 mstdn_client.status_post(status=post_msg, visibility="private")
             
