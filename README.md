@@ -1,6 +1,7 @@
 # self Forsquare Bot
-Swarm の通知が X(Twitter) に連携されないため、自分でなんちゃって連携通知をします。  
-必要な環境変数は以下の通りです。
+This is server/script programs to post Swarm notifications to X (Twitter) and mastdon.  
+
+The following env file is required to run this program.
 ```
 $ cat ~/path/to/self_forsquare_bot/env
 export CONSUMER_KEY=""
@@ -15,15 +16,16 @@ export MASTDN_ACCESS_TOKEN=""
 ```
 
 ## main.py
-webhook 用のサーバを立てる場所もアドレスもなかったので、crontab 等でポーリングすることで連携通知する仕組みです。
+Script with polling method to run in crontab
 
 ```
 $ crontab -l
-*/1 * * * * . ~/path/to/self_forsquare_bot/env; python main.py
+*/1 * * * * bash /path/to/polling.sh
 ```
 
 ## server.py
-FQDN を用意して、Webhook を受け取るサーバを用意できるならこちらを使うほうが良い
+A server-based program that receives and operates on webhooks.  
+To receive a webhook, the server must provide an FQDN and SSL certification.
 ```
-$ python server.py
+$ nohup python server.py &
 ```
