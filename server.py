@@ -17,7 +17,7 @@ import re
 import sys
 import mimetypes
 
-# ポート番号を指定
+# port number
 PORT = 8080
 
 CONSUMER_KEY = os.environ['CONSUMER_KEY']
@@ -31,8 +31,8 @@ MASTDN_CLIENT_SECRET = os.environ['MASTDN_CLIENT_SECRET']
 MASTDN_ACCESS_TOKEN = os.environ['MASTDN_ACCESS_TOKEN']
 
 FORSQUARE_ACCESS_TOKEN= os.environ['FORSQUARE_ACCESS_TOKEN']
+FOURSQUARE_API_VERSION="20231024"
 
-# FoursquareのWebhookエンドポイント
 class WebhookHandler(http.server.BaseHTTPRequestHandler):
     def create_tw_client(self):
         auth = tweepy.OAuthHandler(CONSUMER_KEY, CONSUMER_SECRET)
@@ -50,6 +50,7 @@ class WebhookHandler(http.server.BaseHTTPRequestHandler):
 
         return client, api
 
+
     def create_mstdn_client(self):
         client = Mastodon(
             api_base_url  = 'https://mstdn.jp',
@@ -60,6 +61,7 @@ class WebhookHandler(http.server.BaseHTTPRequestHandler):
 
         return client
 
+
     def get_photo(self, photo):
         url = photo['prefix'] + "original" + photo['suffix']
         photo_path = "./data/tmp" + photo['suffix']
@@ -69,6 +71,7 @@ class WebhookHandler(http.server.BaseHTTPRequestHandler):
             f.write(res.content)
         
         return photo_path
+
 
     def get_request(self, url, params):
         try:
@@ -88,28 +91,34 @@ class WebhookHandler(http.server.BaseHTTPRequestHandler):
             print("Error:", re)
             sys.exit(1)
     
+
     def main(self, data):
-        # Webhookデータの処理
-        print(f"[+] INFO: data['checkin']= {data['checkin']}")
+        # main process
+        print(f"[+] DEBUG: data['checkin']= {data['checkin']}")
         if 'checkin' in data:
             checkin_json = json.loads(data['checkin'])
             checkin_id = checkin_json['id']
 
             # get checkin details
-            url = f"https://api.foursquare.com/v2/checkins/{checkin_id}"
-            params = {
+            url = "https://api.foursquare.com/v2/users/self/checkins"
+            checkin_params = {
                 'oauth_token': FORSQUARE_ACCESS_TOKEN,
-                'v': '20231022',  # Foursquare APIのバージョンを指定
+                'v': FOURSQUARE_API_VERSION,
+                'limit': 1 # Number of latest checkins.
             }
-            checkins_details_json = self.get_request(url, params=params)
+            checkin = self.get_request(url, params=checkin_params)['response']['checkin']['items'][0]
 
-            checkin = checkins_details_json['response']['checkin']
+            # Check if it matches the ID received by webhook
+            if checkin['id'] != checkin_id:
+                print("[+] ERROR: recieve checkin_id is missing.")
+                return 0
 
             hasPhoto = False
             hasShout = False
             photo_path = ""
             post_msg = ""
 
+            print(f"[+] DEBUG: checkin= {checkin}")
             # Check Photo
             if checkin['photos']['count'] > 0:
                 hasPhoto = True
@@ -119,7 +128,7 @@ class WebhookHandler(http.server.BaseHTTPRequestHandler):
             if 'shout' in checkin:
                 hasShout = True
 
-            # memo: formattedAddress の末尾要素が郵便番号の時と、違う時がある。
+            # Note: Sometimes the trailing element of formattedAddress is a zip code and sometimes it is not.
             post_address = ""
             if not re.match(r'\d{3}-?\d{4}', checkin['venue']['location']['formattedAddress'][-1]):
                 post_address = checkin['venue']['location']['formattedAddress'][-1] 
@@ -153,15 +162,16 @@ class WebhookHandler(http.server.BaseHTTPRequestHandler):
 
         return 0
 
+
     def do_POST(self):
         if "/webhook" == self.path:
             content_length = int(self.headers['Content-Length'])
             post_data = self.rfile.read(content_length)
         
-            # application/x-www-form-urlencodedデータを解析
+            # Format of recieved data is application/x-www-form-urlencoded.
             post_data = post_data.decode('utf-8')
             post_data = parse_qs(post_data)
-            # 解析したデータをJSONに変換
+            # excahnge to jason
             data = {key: value[0] for key, value in post_data.items()}
 
             # main process
