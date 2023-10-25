@@ -101,12 +101,12 @@ class WebhookHandler(http.server.BaseHTTPRequestHandler):
 
             # get checkin details
             url = "https://api.foursquare.com/v2/users/self/checkins"
-            checkin_params = {
+            params = {
                 'oauth_token': FORSQUARE_ACCESS_TOKEN,
                 'v': FOURSQUARE_API_VERSION,
                 'limit': 1 # Number of latest checkins.
             }
-            checkin = self.get_request(url, params=checkin_params)['response']['checkin']['items'][0]
+            checkin = self.get_request(url, params=params)['response']['checkins']['items'][0]
 
             # Check if it matches the ID received by webhook
             if checkin['id'] != checkin_id:
@@ -135,7 +135,14 @@ class WebhookHandler(http.server.BaseHTTPRequestHandler):
             else:
                 post_address = checkin['venue']['location']['formattedAddress'][-2]
 
-            checkinShortUrl = checkin['checkinShortUrl']
+            url = f"https://api.foursquare.com/v2/checkins/{checkin_id}"
+            params = {
+                'oauth_token': FORSQUARE_ACCESS_TOKEN,
+                'v': FOURSQUARE_API_VERSION,  # Foursquare APIのバージョンを指定
+            }
+            checkins_details = self.get_request(url, params)
+            
+            checkinShortUrl = checkins_details['response']['checkin']['checkinShortUrl']
 
             if hasShout:
                 post_msg = f"{checkin['shout']} (@ {checkin['venue']['name']} in {post_address}) {checkinShortUrl}"
