@@ -1,5 +1,5 @@
 .env
 *.txt
-/data/tmp
+*.jpg
 /data/last_post
 venv*

@@ -8,6 +8,7 @@ import http.server
 import socketserver
 import json
 import tweepy
+import time
 from mastodon import Mastodon
 import requests
 from urllib.parse import parse_qs
@@ -19,6 +20,8 @@ import mimetypes
 
 # port number
 PORT = 8080
+
+DELAY_FOR_WAITING_PHOTO_UPLOADING=10
 
 CONSUMER_KEY = os.environ['CONSUMER_KEY']
 CONSUMER_SECRET = os.environ['CONSUMER_SECRET']
@@ -98,6 +101,9 @@ class WebhookHandler(http.server.BaseHTTPRequestHandler):
         if 'checkin' in data:
             checkin_json = json.loads(data['checkin'])
             checkin_id = checkin_json['id']
+
+            # wait for photo uploading
+            time.sleep(DELAY_FOR_WAITING_PHOTO_UPLOADING)
 
             # get checkin details
             url = "https://api.foursquare.com/v2/users/self/checkins"
