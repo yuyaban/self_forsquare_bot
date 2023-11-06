@@ -86,17 +86,14 @@ class WebhookHandler(http.server.BaseHTTPRequestHandler):
             return response.json()
         except ConnectionError as ce:
             print("Connection Error:", ce)
-            sys.exit(1)
         except HTTPError as he:
             print("HTTP Error:", he)
-            sys.exit(1)
         except Timeout as te:
             print("Timeout Error:", te)
-            sys.exit(1)
         except RequestException as re:
             print("Error:", re)
-            sys.exit(1)
-    
+
+        return 1    
 
     def main(self, data):
         # main process
@@ -115,12 +112,16 @@ class WebhookHandler(http.server.BaseHTTPRequestHandler):
                 'v': FOURSQUARE_API_VERSION,
                 'limit': 1 # Number of latest checkins.
             }
-            checkin = self.get_request(url, params=params)['response']['checkins']['items'][0]
+            checkins = self.get_request(url, params=params)
+            if checkins == 1:
+                return 1
+
+            checkin = checkins['response']['checkins']['items'][0]
 
             # Check if it matches the ID received by webhook
             if checkin['id'] != checkin_id:
                 if DEBUG: print("[+] ERROR: recieve checkin_id is missing.")
-                return 0
+                return 1
 
             hasPhoto = False
             hasShout = False
