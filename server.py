@@ -72,7 +72,23 @@ class WebhookHandler(http.server.BaseHTTPRequestHandler):
         url = photo['prefix'] + "original" + photo['suffix']
         photo_path = "./data/tmp" + photo['suffix']
 
-        res = requests.get(url)
+        for i in range(5):
+            try:
+                res = requests.get(url, timeout=3.5)
+                break
+            except ConnectionError as ce:
+                print("Connection Error:", ce)
+            except HTTPError as he:
+                print("HTTP Error:", he)
+            except Timeout as te:
+                print("Timeout Error:", te)
+            except RequestException as re:
+                print("Error:", re)
+            time.sleep(1)
+        
+        if res.status_code != 200:
+            print(f"[-] ERROR: Failed to get photo. status_code= {res.status_code}")
+            return ""
         with open(photo_path, 'wb') as f:
             f.write(res.content)
         
@@ -81,7 +97,7 @@ class WebhookHandler(http.server.BaseHTTPRequestHandler):
 
     def get_request(self, url, params):
         try:
-            response = requests.get(url, params=params)
+            response = requests.get(url, params=params, timeout=3.5)
             response.raise_for_status()
             return response.json()
         except ConnectionError as ce:
@@ -133,6 +149,10 @@ class WebhookHandler(http.server.BaseHTTPRequestHandler):
             if checkin['photos']['count'] > 0:
                 hasPhoto = True
                 photo_path = self.get_photo(checkin['photos']['items'][0])
+            
+            if photo_path == "":
+                print("[-] ERROR: Failed to get photo.")
+                return 1
             
             # Check message
             if 'shout' in checkin:
